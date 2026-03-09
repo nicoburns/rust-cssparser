@@ -73,6 +73,8 @@ macro_rules! match_ignore_ascii_case {
     };
 }
 
+#[cfg(not(feature = "fast_match_color"))]
+#[macro_export]
 /// Define a function `$name(&str) -> Option<&'static $ValueType>`
 ///
 /// The function finds a match for the input string
@@ -86,7 +88,7 @@ macro_rules! match_ignore_ascii_case {
 /// # fn main() {}  // Make doctest not wrap everything in its own main
 ///
 /// fn color_rgb(input: &str) -> Option<(u8, u8, u8)> {
-///     cssparser::ascii_case_insensitive_phf_map! {
+///     cssparser::ascii_case_insensitive_map! {
 ///         static KEYWORDS : (u8, u8, u8) = {
 ///             "red" => (255, 0, 0),
 ///             "green" => (0, 255, 0),
@@ -98,13 +100,77 @@ macro_rules! match_ignore_ascii_case {
 /// ```
 ///
 /// You can also iterate over the map entries by using `keywords::entries()`.
+macro_rules! ascii_case_insensitive_map {
+    (static $name:ident : $ValueType:ty = { $( $key:tt => $value:expr ),+ }) => {
+        ascii_case_insensitive_map!(static $name : $ValueType = { $( $key => $value, )+ })
+    };
+    (static $name:ident : $ValueType:ty = { $( $key:tt => $value:expr, )+ }) => {
+
+        // While the obvious choice for this would be an inner module, it's not possible to
+        // reference from types from there, see:
+        // <https://github.com/rust-lang/rust/issues/114369>
+        //
+        // So we abuse a struct with static associated functions instead.
+        #[allow(non_camel_case_types)]
+        struct $name;
+        impl $name {
+            #[allow(dead_code)]
+            fn entries() -> impl Iterator<Item = (&'static &'static str, &'static $ValueType)> {
+                [ $((&$key, &$value),)* ].iter().copied()
+            }
+
+            fn get(input: &str) -> Option<&'static $ValueType> {
+                $crate::match_ignore_ascii_case!(input,
+                    $($key => Some(&$value),)*
+                    _ => None,
+                )
+            }
+        }
+    }
+}
+
+#[cfg(feature = "fast_match_color")]
+#[macro_export]
+/// Define a function `$name(&str) -> Option<&'static $ValueType>`
+///
+/// The function finds a match for the input string
+/// in a [`phf` map](https://github.com/sfackler/rust-phf)
+/// and returns a reference to the corresponding value.
+/// Matching is case-insensitive in the ASCII range.
+///
+/// ## Example:
+///
+/// ```rust
+/// # fn main() {}  // Make doctest not wrap everything in its own main
+///
+/// fn color_rgb(input: &str) -> Option<(u8, u8, u8)> {
+///     cssparser::ascii_case_insensitive_map! {
+///         static KEYWORDS : (u8, u8, u8) = {
+///             "red" => (255, 0, 0),
+///             "green" => (0, 255, 0),
+///             "blue" => (0, 0, 255),
+///         }
+///     }
+///     KEYWORDS::get(input).cloned()
+/// }
+/// ```
+///
+/// You can also iterate over the map entries by using `keywords::entries()`.
+macro_rules! ascii_case_insensitive_map {
+    ($($any:tt)+) => {
+        $crate::ascii_case_insensitive_phf_map!($($any)+);
+    };
+}
+
+/// Fast implementation of `ascii_case_insensitive_map!` using a phf map.
+/// See `ascii_case_insensitive_map!` above for docs
+#[cfg(feature = "fast_match_color")]
 #[macro_export]
 macro_rules! ascii_case_insensitive_phf_map {
     (static $name:ident : $ValueType:ty = { $( $key:tt => $value:expr ),+ }) => {
         ascii_case_insensitive_phf_map!(static $name : $ValueType = { $( $key => $value, )+ })
     };
     (static $name:ident : $ValueType:ty = { $( $key:tt => $value:expr, )+ }) => {
-        use $crate::_cssparser_internal_phf as phf;
 
         #[inline(always)]
         const fn const_usize_max(a: usize, b: usize) -> usize {
@@ -124,7 +190,7 @@ macro_rules! ascii_case_insensitive_phf_map {
             maxlen
         };
 
-        static __MAP: phf::Map<&'static str, $ValueType> = phf::phf_map! {
+        static __MAP: ::phf::Map<&'static str, $ValueType> = ::phf::phf_map! {
             $(
                 $key => $value,
             )*

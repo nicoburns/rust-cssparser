@@ -116,9 +116,6 @@ mod mac {
   }
 }
 
-#[doc(hidden)]
-pub use phf as _cssparser_internal_phf;
-
 #[macro_use]
 mod macros;
 
