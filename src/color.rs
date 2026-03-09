@@ -111,7 +111,8 @@ impl PredefinedColorSpace {
             "prophoto-rgb" => Self::ProphotoRgb,
             "rec2020" => Self::Rec2020,
             "xyz-d50" => Self::XyzD50,
-            "xyz" | "xyz-d65" => Self::XyzD65,
+            "xyz" => Self::XyzD65,
+            "xyz-d65" => Self::XyzD65,
             _ => return Err(location.new_basic_unexpected_token_error(Token::Ident(ident.clone()))),
         })
     }
