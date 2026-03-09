@@ -87,23 +87,23 @@ macro_rules! match_ignore_ascii_case {
 ///
 /// fn color_rgb(input: &str) -> Option<(u8, u8, u8)> {
 ///     cssparser::ascii_case_insensitive_phf_map! {
-///         keywords -> (u8, u8, u8) = {
+///         static KEYWORDS : (u8, u8, u8) = {
 ///             "red" => (255, 0, 0),
 ///             "green" => (0, 255, 0),
 ///             "blue" => (0, 0, 255),
 ///         }
 ///     }
-///     keywords::get(input).cloned()
+///     KEYWORDS::get(input).cloned()
 /// }
 /// ```
 ///
 /// You can also iterate over the map entries by using `keywords::entries()`.
 #[macro_export]
 macro_rules! ascii_case_insensitive_phf_map {
-    ($name: ident -> $ValueType: ty = { $( $key: tt => $value: expr ),+ }) => {
-        ascii_case_insensitive_phf_map!($name -> $ValueType = { $( $key => $value, )+ })
+    (static $name:ident : $ValueType:ty = { $( $key:tt => $value:expr ),+ }) => {
+        ascii_case_insensitive_phf_map!(static $name : $ValueType = { $( $key => $value, )+ })
     };
-    ($name: ident -> $ValueType: ty = { $( $key: tt => $value: expr, )+ }) => {
+    (static $name:ident : $ValueType:ty = { $( $key:tt => $value:expr, )+ }) => {
         use $crate::_cssparser_internal_phf as phf;
 
         #[inline(always)]
@@ -124,7 +124,7 @@ macro_rules! ascii_case_insensitive_phf_map {
             maxlen
         };
 
-        static MAP: phf::Map<&'static str, $ValueType> = phf::phf_map! {
+        static __MAP: phf::Map<&'static str, $ValueType> = phf::phf_map! {
             $(
                 $key => $value,
             )*
@@ -140,12 +140,12 @@ macro_rules! ascii_case_insensitive_phf_map {
         impl $name {
             #[allow(dead_code)]
             fn entries() -> impl Iterator<Item = (&'static &'static str, &'static $ValueType)> {
-                MAP.entries()
+                __MAP.entries()
             }
 
             fn get(input: &str) -> Option<&'static $ValueType> {
                 $crate::_cssparser_internal_to_lowercase!(input, MAX_LENGTH => lowercase);
-                MAP.get(lowercase?)
+                __MAP.get(lowercase?)
             }
         }
     }

@@ -1079,12 +1079,12 @@ fn one_component_value_to_json(token: Token, input: &mut Parser) -> Value {
 #[test]
 fn procedural_masquerade_whitespace() {
     ascii_case_insensitive_phf_map! {
-        map -> () = {
+        static MAP : () = {
             "  \t\n" => ()
         }
     }
-    assert_eq!(map::get("  \t\n"), Some(&()));
-    assert_eq!(map::get(" "), None);
+    assert_eq!(MAP::get("  \t\n"), Some(&()));
+    assert_eq!(MAP::get(" "), None);
 
     match_ignore_ascii_case! { "  \t\n",
         " " => panic!("1"),

@@ -170,7 +170,7 @@ pub fn parse_hash_color(value: &[u8]) -> Result<(u8, u8, u8, f32), ()> {
 }
 
 ascii_case_insensitive_phf_map! {
-    named_colors -> (u8, u8, u8) = {
+    static NAMED_COLORS : (u8, u8, u8) = {
         "black" => (0, 0, 0),
         "silver" => (192, 192, 192),
         "gray" => (128, 128, 128),
@@ -328,14 +328,14 @@ ascii_case_insensitive_phf_map! {
 #[allow(clippy::result_unit_err)]
 #[inline]
 pub fn parse_named_color(ident: &str) -> Result<(u8, u8, u8), ()> {
-    named_colors::get(ident).copied().ok_or(())
+    NAMED_COLORS::get(ident).copied().ok_or(())
 }
 
 /// Returns an iterator over all named CSS colors.
 /// <https://drafts.csswg.org/css-color-4/#typedef-named-color>
 #[inline]
 pub fn all_named_colors() -> impl Iterator<Item = (&'static str, (u8, u8, u8))> {
-    named_colors::entries().map(|(k, v)| (*k, *v))
+    NAMED_COLORS::entries().map(|(k, v)| (*k, *v))
 }
 
 #[inline]
